@@ -1,16 +1,14 @@
-const express=require('express')
-const cors = require('cors')
-const { MongoClient, ServerApiVersion } = require('mongodb');
-require('dotenv').config()
+
+const express = require("express");
+const cors = require("cors");
+const { MongoClient, ServerApiVersion } = require("mongodb");
+require("dotenv").config();
 const app = express();
 const port = process.env.PORT || 5000;
 
-
 // middleware
-app.use(cors())
-app.use(express.json())
-
-
+app.use(cors());
+app.use(express.json());
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.hzcboi3.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
@@ -20,48 +18,79 @@ const client = new MongoClient(uri, {
     version: ServerApiVersion.v1,
     strict: true,
     deprecationErrors: true,
-  }
+  },
 });
 
 async function run() {
   try {
-    // Connect the client to the server	(optional starting in v4.7)
-      await client.connect();
-      
-const productCollection= client.db('EchoMart').collection('allproducts')
+    await client.connect();
 
-      
-      
-      app.get('/allproducts', async (req, res) => {
-          const curser = productCollection.find()
-          const result = await curser.toArray()
-          res.send(result)
-      })
+    const productCollection = client.db("EchoMart").collection("allproducts");
 
 
-    // Send a ping to confirm a successful connection
+
+    // app.get("/allproducts", async (req, res) => {
+    //   const page = parseInt(req.query.page) || 0;
+    //   const size = parseInt(req.query.size) || 10;
+    //   const sort = req.query.sort === "asc" ? 1 : -1;
+
+    //   const result = await productCollection
+    //     .find()
+    //     .sort({ Price: sort })
+    //     .skip(page * size)
+    //     .limit(size)
+    //     .toArray();
+    //   res.send(result);
+    // });
+
+    app.get("/allproducts", async (req, res) => {
+      const page = parseInt(req.query.page) || 0;
+      const size = parseInt(req.query.size) || 10;
+      const sort = req.query.sort === "asc" ? 1 : -1;
+      const search = req.query.search || '';
+    
+      let query = {};
+    
+      if (search) {
+        query = {
+          $or: [
+            { product_name: { $regex: search, $options: "i" } },
+            { Category: { $regex: search, $options: "i" } }
+          ],
+        };
+      }
+    
+      const result = await productCollection
+        .find(query)
+        .sort({ Price: sort })
+        .skip(page * size)
+        .limit(size)
+        .toArray();
+      res.send(result);
+    });
+    
+
+
+    
+    app.get("/productCount", async (req, res) => {
+      const count = await productCollection.estimatedDocumentCount();
+      res.send({ count });
+    });
+
     await client.db("admin").command({ ping: 1 });
-    console.log("Pinged your deployment. You successfully connected to MongoDB!");
+    console.log(
+      "Pinged your deployment. You successfully connected to MongoDB!"
+    );
   } finally {
-    // Ensures that the client will close when you finish/error
     // await client.close();
   }
 }
 run().catch(console.dir);
 
-
-
-
-
-
-
-
-
-
-app.get('/', (req, res) => {
-    res.send('echomart is running')
-})
+app.get("/", (req, res) => {
+  res.send("echomart is running");
+});
 
 app.listen(port, () => {
-    console.log(`echomart is running peacefully ${port}`);
-})
+  console.log(`echomart is running peacefully on ${port}`);
+});
