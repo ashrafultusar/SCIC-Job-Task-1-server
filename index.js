@@ -40,7 +40,8 @@ async function run() {
     app.get("/", (req, res) => {
       res.send("EchoMart server is running");
     });
-
+    
+// all product get 
     app.get("/allproducts", async (req, res) => {
       const page = parseInt(req.query.page) || 0;
       const size = parseInt(req.query.size) || 10;
